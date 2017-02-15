@@ -1,7 +1,7 @@
 from bs4 import BeautifulSoup
+from DBConnector import DBConnector
 import urllib3
 import datetime as dt
-import PyMySQL
 import time
 
 # Dictionary of all the currencies for poe.trade
