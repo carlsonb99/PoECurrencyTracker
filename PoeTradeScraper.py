@@ -15,7 +15,7 @@ class PoeTradeScraper:
 		3: 'Orb of Alchemy',
 		4: 'Chaos Orb',
 		5: 'Gemcutter\'s Prism',
-		6: 'exalted',
+		6: 'Exalted Orb',
 		7: 'Chromatic Orb',
 		8: 'Jeweler\'s Orb', 
 		9: 'Orb of Chance', 
@@ -63,6 +63,7 @@ class PoeTradeScraper:
 
 		#Init DB class with the DB info
 		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency')
+		self.table_info=["PoECurrency","(time, exchange, bv_name, bv_value, sv_name, sv_value)", "(%s, %s, %s, %s, %s, %s)"]
 
 	def scrape(self):
 		# Get the start time of the scrape
@@ -76,49 +77,53 @@ class PoeTradeScraper:
 		# For each currency
 		for want in self.currencies:
 		    # Get the ratio to other currencies
-		    for have in self.currencies:
-		        if want == have:
-		            continue
+			for have in self.currencies:
+				if want == have:
+					continue
 
-		        # Get the HTML Source
-		        url = 'http://currency.poe.trade/search?league=Breach&online=x&want=' + str(want) + '&have=' + str(have)
-		        response = self.http.request('GET', url)
+				# Get the HTML Source
+				url = 'http://currency.poe.trade/search?league=Breach&online=x&want=' + str(want) + '&have=' + str(have)
+				response = self.http.request('GET', url)
 
-		        # Parse the HTML Source
-		        soup = BeautifulSoup(response.data, 'html.parser')
+				# Parse the HTML Source
+				soup = BeautifulSoup(response.data, 'html.parser')
 
-		        # Get all of the buy and sell values
-		        for i in soup.findAll("div", {"data-sellvalue": True}):
-		            bv = float(i.get("data-buyvalue"))
-		            sv = float(i.get("data-sellvalue"))
+				# Get all of the buy and sell values
+				for i in soup.findAll("div", {"data-sellvalue": True}):
+					bv = float(i.get("data-buyvalue"))
+					sv = float(i.get("data-sellvalue"))
 
-		            # Bring the ratio down to 1 unit of currency
-		            if bv >= sv:
-		                bv = round((bv / sv), 3)
-		                sv = 1
-		            else:
-		                sv = round((sv / bv), 3)
-		                bv = 1
+					# Bring the ratio down to 1 unit of currency
+					if bv >= sv:
+					    bv = round((bv / sv), 3)
+					    sv = 1
+					else:
+					    sv = round((sv / bv), 3)
+					    bv = 1
 
-		            # Append them to the data array
-		            self.data.append([dt.datetime.now(), True, self.currencies[have], bv, self.currencies[want], sv])
+					# Append them to the data array
+					self.data.append([start_time, True, self.currencies[have], bv, self.currencies[want], sv])
 
-		        # Test print
-		        if self.data:
-		            print('Exchanges found...')
-		            print('Example: ', self.data[0])
-		        else:
-		            print('No exchanges found')
+				# Test print
+				if self.data:
+					print('Have: ', self.currencies[have], ' Want: ', self.currencies[want])
+					print('Exchanges found...')
+					print('Example: ', self.data[0])
+				else:
+					print('Have: ', self.currencies[have], ' Want: ', self.currencies[want])
+					print('No exchanges found')
+					self.data.append([start_time, False, self.currencies[have], 0, self.currencies[want], sv])
 
-		        # Insert into the database
-		        print('Adding to database...')
+				# Insert into the database
+				print('Adding to database...')
+				self.db.insert(self.table_info,self.data)
 
-		        # Clear price ratio list
-		        self.data = []
+				# Clear price ratio list
+				self.data = []
 
-		    break
+			break
 
 		end_time = dt.datetime.now()
 
-		print('PoE Trade Scrap ended at: ', start_time)
+		print('\nPoE Trade Scrap ended at: ', start_time)
 		print('Time to scrap: ', (end_time - start_time))
