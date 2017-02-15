@@ -1,6 +1,8 @@
 from bs4 import BeautifulSoup
-import urllib
-import re
+import urllib3
+import datetime as dt
+import PyMySQL
+import time
 
 # Dictionary of all the currencies for poe.trade
 currencies = {1: 'Orb of Alteration', 2: 'Orb of Fusing', 3: 'Orb of Alchemy', 4: 'Chaos Orb', 5: 'Gemcutter\'s Prism', 6: 'exalted',
@@ -14,44 +16,53 @@ currencies = {1: 'Orb of Alteration', 2: 'Orb of Fusing', 3: 'Orb of Alchemy', 4
 # Temporary list to store price ratios
 prices = []
 
+http = urllib3.PoolManager()
+
+start_time = dt.datetime.now()
+print('PoE Trade Scrap started at: ', start_time)
+
 # For each currency
 for want in currencies:
     # Get the ratio to other currencies
     for have in currencies:
         if want == have:
             continue
+
         # Get the HTML Source
-        filehandle = urllib.request.urlopen(
-            'http://currency.poe.trade/search?league=Breach&online=x&want=' + str(want) + '&have=' + str(have))
+        url = 'http://currency.poe.trade/search?league=Breach&online=x&want=' + \
+            str(want) + '&have=' + str(have)
+        response = http.request('GET', url)
 
         # Parse the HTML Source
-        soup = BeautifulSoup(filehandle.read(), 'html.parser')
+        soup = BeautifulSoup(response.data, 'html.parser')
 
-        # Get all of the buy and sell values and add them to the prices array
+        # Get all of the buy and sell values
         for i in soup.findAll("div", {"data-sellvalue": True}):
-            prices.append([i.get("data-buyvalue"), i.get("data-sellvalue")])
+            bv = float(i.get("data-buyvalue"))
+            sv = float(i.get("data-sellvalue"))
+
+			# Bring the ratio down to 1 unit of currency
+            if bv >= sv:
+                bv = round((bv / sv), 3)
+                sv = 1
+            else:
+                bv = round((sv / bv), 3)
+                bv = 1
+
+            # Append them to the prices array
+            prices.append([bv, sv])
 
         # Test print
         print('Have: ', currencies[have], '\nWant: ', currencies[want])
         if prices:
             print(prices[0])
+
+
+        # Insert into the database
+
+
         # Clear price ratio list
         prices = []
 
-                # Get the HTML Source
-        filehandle = urllib.request.urlopen(
-            'http://currency.poe.trade/search?league=Breach&online=x&want=' + str(have) + '&have=' + str(want))
-
-        # Parse the HTML Source
-        soup = BeautifulSoup(filehandle.read(), 'html.parser')
-
-        # Get all of the buy and sell values and add them to the prices array
-        for i in soup.findAll("div", {"data-sellvalue": True}):
-            prices.append([i.get("data-buyvalue"), i.get("data-sellvalue")])
-
-        # Test print
-        print('Have: ', currencies[want], '\nWant: ', currencies[have])
-        if prices:
-            print(prices[0])
-        # Clear price ratio list
-        prices = []
+end_time = dt.datetime.now()
+print('PoE Trade Scrap ended at: ', start_time)
