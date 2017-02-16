@@ -63,7 +63,7 @@ class PoeTradeScraper:
 
 		#Init DB class with the DB info
 		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency')
-		self.table_info=["PoECurrency","(time, exchange, bv_name, bv_value, sv_name, sv_value)", "(%s, %s, %s, %s, %s, %s)"]
+		self.table_info=["PoECurrency","(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
 
 	def scrape(self):
 		# Get the start time of the scrape
@@ -71,7 +71,7 @@ class PoeTradeScraper:
 		print('\nPoE Trade Scrap started at: ', start_time)
 
 		#Connect to DB
-		print('Connecting to db...')
+		print('Connecting to DB...')
 		self.db.connect()
 
 		# For each currency
@@ -90,19 +90,19 @@ class PoeTradeScraper:
 
 				# Get all of the buy and sell values
 				for i in soup.findAll("div", {"data-sellvalue": True}):
-					bv = float(i.get("data-buyvalue"))
-					sv = float(i.get("data-sellvalue"))
+					hv = float(i.get("data-buyvalue"))
+					wv = float(i.get("data-sellvalue"))
 
 					# Bring the ratio down to 1 unit of currency
-					if bv >= sv:
-					    bv = round((bv / sv), 3)
-					    sv = 1
+					if hv >= wv:
+					    hv = round((hv / wv), 3)
+					    wv = 1
 					else:
-					    sv = round((sv / bv), 3)
-					    bv = 1
+					    wv = round((wv / hv), 3)
+					    hv = 1
 
 					# Append them to the data array
-					self.data.append([start_time, True, self.currencies[have], bv, self.currencies[want], sv])
+					self.data.append([start_time, True, self.currencies[have], hv, self.currencies[want], wv, round((wv / hv), 3), round((hv / wv), 3)])
 
 				# Test print
 				if self.data:
@@ -112,7 +112,7 @@ class PoeTradeScraper:
 				else:
 					print('Have: ', self.currencies[have], ' Want: ', self.currencies[want])
 					print('No exchanges found')
-					self.data.append([start_time, False, self.currencies[have], 0, self.currencies[want], sv])
+					self.data.append([start_time, False, self.currencies[have], 0, self.currencies[want], 0, 0, 0])
 
 				# Insert into the database
 				print('Adding to database...')
@@ -121,9 +121,8 @@ class PoeTradeScraper:
 				# Clear price ratio list
 				self.data = []
 
-			break
-
 		end_time = dt.datetime.now()
 
-		print('\nPoE Trade Scrap ended at: ', start_time)
+		print('\nPoE Trade Scrape started at: ', start_time)
+		print('PoE Trade Scrape ended at: ', start_time)
 		print('Time to scrap: ', (end_time - start_time))
