@@ -30,7 +30,7 @@ class DBConnector:
             print('Error: ',e)
 
     # Insert desired data
-    def insert(self,table_info, data):
+    def insert(self,table_info, data, log):
 
         try:
             # table_info: [table_name, column_name(s), values_string]
@@ -48,7 +48,8 @@ class DBConnector:
             print('Data commited!\n')
 
         except Error as e:
-            print('Error: ',e)
+            log.write('\nError: '+ e)
+            print('Error: ', e)
 
 
     def select():

@@ -6,7 +6,7 @@ import datetime as dt
 
 class PoeTradeScraper:
 
-	def __init__(self):
+	def __init__(self, league):
 
 		# Dictionary of all the currencies for poe.trade
 		self.currencies={
@@ -52,8 +52,11 @@ class PoeTradeScraper:
 		43: 'Fragment of the Chimera', 
 		45: 'Apprentice Sextant', 
 		46: 'Journeyman Sextant', 
-		7: 'Master Sextant'
+		47: 'Master Sextant'
 		}
+
+		#League for data scraping
+		self.league = league
 
 		# Temporary list to store exchange data for database insertion
 		self.data=[]
@@ -61,13 +64,21 @@ class PoeTradeScraper:
 		# HTTP handle for requests and responses
 		self.http=urllib3.PoolManager()
 
-		#Init DB class with the DB info
+		# Init DB class with the DB info
 		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency')
-		self.table_info=["PoECurrency","(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
+		self.table_info=["poe_currency_"+self.league,"(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
+
+		# Setup the log file for this session
+		self.log = open('logs/'+dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'_log.txt','w')
+
+	def __del__(self):
+		self.log.close()
 
 	def scrape(self):
 		# Get the start time of the scrape
 		start_time = dt.datetime.now()
+		# Write to log and console
+		self.log.write('PoE Trade Scrap started at: '+str(start_time))
 		print('\nPoE Trade Scrap started at: ', start_time)
 
 		#Connect to DB
@@ -82,29 +93,44 @@ class PoeTradeScraper:
 					continue
 
 				# Get the HTML Source
-				url = 'http://currency.poe.trade/search?league=Breach&online=x&want=' + str(want) + '&have=' + str(have)
+				url = 'http://currency.poe.trade/search?league='+self.league+'&online=x&want=' + str(want) + '&have=' + str(have)
 				response = self.http.request('GET', url)
 
 				# Parse the HTML Source
 				soup = BeautifulSoup(response.data, 'html.parser')
 
+				first = True
 				# Get all of the buy and sell values
 				for i in soup.findAll("div", {"data-sellvalue": True}):
 					hv = float(i.get("data-buyvalue"))
 					wv = float(i.get("data-sellvalue"))
 
-					# Bring the ratio down to 1 unit of currency
-					if hv >= wv:
-					    hv = round((hv / wv), 3)
-					    wv = 1
-					else:
-					    wv = round((wv / hv), 3)
-					    hv = 1
+					ratio_h_w = round((wv / hv), 3)
+					ratio_w_h = round((hv / wv), 3)
+
+					# Logic to discard bogus or inverted ratios by using first ratio as a base
+					# If this is the first ratio, check if it is greater or less than 1
+					if first and ratio_h_w >= 1:
+						# If greater than 1, we want to make sure all ratios greater than one are stored
+						rc = 1
+						first = False
+					elif first:
+						# If less than 1, we want to make sure all ratios less than one are stored
+						rc = 0
+						first = False
+
+					# All the rest of the ratios
+					# If ratio is less than 1 and rc == 1, then we skip this ratio
+					if ratio_h_w < 1 and rc == 1:
+						continue
+					# If ratio is greater than 1 and rc == 0, then we skip this ratio
+					elif ratio_h_w > 1 and rc == 0:
+						continue
 
 					# Append them to the data array
-					self.data.append([start_time, True, self.currencies[have], hv, self.currencies[want], wv, round((wv / hv), 3), round((hv / wv), 3)])
+					self.data.append([start_time, True, self.currencies[have], hv, self.currencies[want], wv, ratio_h_w, ratio_w_h])
 
-				# Test print
+				# Exchanges found and example
 				if self.data:
 					print('Have: ', self.currencies[have], ' Want: ', self.currencies[want])
 					print('Exchanges found...')
@@ -115,13 +141,18 @@ class PoeTradeScraper:
 					self.data.append([start_time, False, self.currencies[have], 0, self.currencies[want], 0, 0, 0])
 
 				# Insert into the database
-				print('Adding to database...')
-				self.db.insert(self.table_info,self.data)
+				print('Calling DB connector...')
+				self.db.insert(self.table_info,self.data, self.log)
 
 				# Clear price ratio list
 				self.data = []
 
+		# End time of the scrape
 		end_time = dt.datetime.now()
+
+		# Write to log and console
+		self.log.write('\nPoE Trade Scrape ended at: '+ str(start_time))
+		self.log.write('\nTime to scrap: '+str((end_time - start_time)))
 
 		print('\nPoE Trade Scrape started at: ', start_time)
 		print('PoE Trade Scrape ended at: ', start_time)
