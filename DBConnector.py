@@ -33,12 +33,12 @@ class DBConnector:
             print('Error: ',e)
 
     # Insert desired data
-    def insert(self,table_info, data):
+    def insert(self,table_name,table_info, data):
 
         try:
             # table_info: [table_name, column_name(s), values_string]
             # data: [values]
-            query = "INSERT INTO "+" "+table_info[0]+" "+table_info[1]+" VALUES "+table_info[2]
+            query = "INSERT INTO "+" "+table_name+" "+table_info[0]+" VALUES "+table_info[1]
             
             print('Inserting data into DB...')
 
