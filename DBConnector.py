@@ -15,7 +15,7 @@ class DBConnector:
 
     def __del__(self):
         # Close DB Connection
-        self.log.write("\nClosing DB Connection...")
+        #self.log.write("\nClosing DB Connection...")
         print("\nClosing DB Connection...")
         self.conn.close()
 

@@ -80,8 +80,9 @@ class PoeTradeScraper:
 		# Get the start time of the scrape
 		start_time = dt.datetime.now()
 		# Write to log and console
-		self.log.write('PoE Trade Scrap started at: '+str(start_time))
-		print('\nPoE Trade Scrap started at: ', start_time)
+		self.log.write('PoE Trade Scrape started at: '+str(start_time))
+		self.log.write('\n------------------------------------------------------\n')
+		print('\nPoE Trade Scrape started at: ', start_time)
 
 		#Connect to DB
 		print('Connecting to DB...')
@@ -146,6 +147,8 @@ class PoeTradeScraper:
 				print('Calling DB connector...')
 				self.db.insert(self.table_info,self.data)
 
+				# Update log on completion of currency type
+				self.log.write('\n'+self.currencies[want]+' exchanges completed.')
 				# Clear price ratio list
 				self.data = []
 
@@ -153,9 +156,11 @@ class PoeTradeScraper:
 		end_time = dt.datetime.now()
 
 		# Write to log and console
+		self.log.write('\n------------------------------------------------------\n')
+		self.log.write('\nPoE Trade Scrape started at: '+str(start_time))
 		self.log.write('\nPoE Trade Scrape ended at: '+ str(start_time))
-		self.log.write('\nTime to scrap: '+str((end_time - start_time)))
+		self.log.write('\nTime to scrape: '+str((end_time - start_time)))
 
 		print('\nPoE Trade Scrape started at: ', start_time)
 		print('PoE Trade Scrape ended at: ', start_time)
-		print('Time to scrap: ', (end_time - start_time))
+		print('Time to scrape: ', (end_time - start_time))
