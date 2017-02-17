@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 from DBConnector import DBConnector
+import os
 import urllib3
 import datetime as dt
 
@@ -68,8 +69,10 @@ class PoeTradeScraper:
 		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency')
 		self.table_info=["poe_currency_"+self.league,"(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
 
+		dir_path = os.path.dirname(os.path.realpath(__file__))
+		
 		# Setup the log file for this session
-		self.log = open('logs/'+dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'_log.txt','w')
+		self.log = open(dir_path+'/logs/'+dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'_log.txt','w')
 
 	def __del__(self):
 		self.log.close()
