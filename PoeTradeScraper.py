@@ -65,14 +65,13 @@ class PoeTradeScraper:
 		# HTTP handle for requests and responses
 		self.http=urllib3.PoolManager()
 
-		# Init DB class with the DB info
-		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency')
-		self.table_info=["poe_currency_"+self.league,"(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
-
-		dir_path = os.path.dirname(os.path.realpath(__file__))
-		
 		# Setup the log file for this session
+		dir_path = os.path.dirname(os.path.realpath(__file__))
 		self.log = open(dir_path+'/logs/'+dt.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")+'_log.txt','w')
+
+		# Init DB class with the DB info
+		self.db = DBConnector('the_warehouse', 'poecurrency', 'poecurrency', self.log)
+		self.table_info=["poe_currency_"+self.league,"(time, exchange, have_name, have_value, want_name, want_value, ratio_h_w, ratio_w_h)", "(%s, %s, %s, %s, %s, %s, %s, %s)"]
 
 	def __del__(self):
 		self.log.close()
@@ -145,7 +144,7 @@ class PoeTradeScraper:
 
 				# Insert into the database
 				print('Calling DB connector...')
-				self.db.insert(self.table_info,self.data, self.log)
+				self.db.insert(self.table_info,self.data)
 
 				# Clear price ratio list
 				self.data = []

@@ -6,14 +6,16 @@ from mysql.connector import Error
 # Class for manipulating DB
 class DBConnector:
 
-    def __init__(self, database, user, password):
+    def __init__(self, database, user, password, log):
         self.conn = None
         self.database = database
         self.user = user
         self.password = password
+        self.log = log
 
     def __del__(self):
         # Close DB Connection
+        self.log.write("\nClosing DB Connection...")
         print("\nClosing DB Connection...")
         self.conn.close()
 
@@ -24,13 +26,14 @@ class DBConnector:
             self.conn = mysql.connector.connect(host='localhost', database=self.database, user=self.user, password=self.password)
 
             if self.conn.is_connected():
+                self.log.write("\nConnected to database!")
                 print('Connected to database!')
 
         except Error as e:
             print('Error: ',e)
 
     # Insert desired data
-    def insert(self,table_info, data, log):
+    def insert(self,table_info, data):
 
         try:
             # table_info: [table_name, column_name(s), values_string]
@@ -48,7 +51,7 @@ class DBConnector:
             print('Data commited!\n')
 
         except Error as e:
-            log.write('\nError: '+ e)
+            self.log.write('\nDatabase Insert Error: '+ str(e))
             print('Error: ', e)
 
 
